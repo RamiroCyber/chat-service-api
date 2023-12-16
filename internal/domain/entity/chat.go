@@ -1,20 +1,14 @@
 package entity
 
 import (
-	"CHAT_SERVICE_API/util"
 	"errors"
+	"github.com/google/uuid"
 )
 
-type ChatConfig struct {
-	Model            *Model
-	Temperature      float32
-	TopP             float32
-	N                int
-	Stop             []string
-	MaxTokens        int
-	PresencePenalty  float32
-	FrequencyPenalty float32
-}
+const (
+	ENDED = iota + 1
+	ACTIVE
+)
 
 type Chat struct {
 	ID             string
@@ -27,8 +21,39 @@ type Chat struct {
 	Config         *ChatConfig
 }
 
+func NewChat(userID string, initialMessage *Message, config *ChatConfig) (*Chat, []string) {
+	chat := &Chat{
+		ID:             uuid.New().String(),
+		UserID:         userID,
+		InitialMessage: initialMessage,
+		Config:         config,
+		Status:         ACTIVE,
+		TokenUsage:     0,
+	}
+	chat.AddMessage(initialMessage)
+	if err := chat.Validate(); err != nil {
+		return nil, err
+	}
+	return chat, nil
+}
+
+func (c *Chat) Validate() (err []string) {
+	if c.UserID == "" {
+		err = append(err, "user id is empty;")
+	}
+
+	if c.Status != ACTIVE && c.Status != ENDED {
+		err = append(err, "invalid status;")
+	}
+
+	if c.Config.Temperature < 0 || c.Config.Temperature > 2 {
+		err = append(err, "invalid temperature;")
+	}
+	return err
+}
+
 func (c *Chat) AddMessage(message *Message) error {
-	if c.Status == util.ENDED {
+	if c.Status == ENDED {
 		errors.New("chat is ended. no more messages allowed")
 	}
 	for {
@@ -45,7 +70,7 @@ func (c *Chat) AddMessage(message *Message) error {
 }
 
 func (c *Chat) Close() {
-	c.Status = util.ENDED
+	c.Status = ENDED
 }
 
 func (c *Chat) GetMessages() []*Message {

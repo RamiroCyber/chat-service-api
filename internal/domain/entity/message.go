@@ -1,11 +1,16 @@
 package entity
 
 import (
-	"CHAT_SERVICE_API/util"
 	"errors"
 	"github.com/google/uuid"
 	"github.com/pkoukk/tiktoken-go"
 	"time"
+)
+
+const (
+	USER = iota + 1
+	SYSTEM
+	ASSISTANT
 )
 
 type Message struct {
@@ -40,7 +45,7 @@ func NewMessage(role int, content string, model *Model) (*Message, error) {
 }
 
 func (m *Message) Validate() error {
-	if m.Role != util.USER && m.Role != util.SYSTEM && m.Role != util.ASSISTANT {
+	if m.Role != USER && m.Role != SYSTEM && m.Role != ASSISTANT {
 		return errors.New("invalid role")
 	}
 	if m.Content == "" {
