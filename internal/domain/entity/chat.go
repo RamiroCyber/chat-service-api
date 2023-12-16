@@ -1,5 +1,10 @@
 package entity
 
+import (
+	"CHAT_SERVICE_API/util"
+	"errors"
+)
+
 type ChatConfig struct {
 	Model            *Model
 	Temperature      float32
@@ -20,4 +25,28 @@ type Chat struct {
 	Status         int
 	TokenUsage     int
 	Config         *ChatConfig
+}
+
+func (c *Chat) AddMessage(message *Message) error {
+	if c.Status == util.ENDED {
+		errors.New("chat is ended. no more messages allowed")
+	}
+	for {
+		if c.Config.Model.GetMaxTokens() >= message.GetQtdTokens()+c.TokenUsage {
+			c.Messages = append(c.Messages, message)
+			c.updateTokenUsage()
+			break
+		}
+		c.ErasedMessages = append(c.ErasedMessages, c.Messages[0])
+		c.Messages = c.Messages[1:]
+		c.updateTokenUsage()
+	}
+	return nil
+}
+
+func (c *Chat) updateTokenUsage() {
+	c.TokenUsage = 0
+	for m := range c.Messages {
+		c.TokenUsage += c.Messages[m].GetQtdTokens()
+	}
 }
